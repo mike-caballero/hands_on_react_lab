@@ -1,101 +1,74 @@
-import React, { Fragment , useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useProjects } from './projectHooks';
 import ProjectList from './ProjectList';
-import { Project } from './Project';
-import { projectAPI } from './projectAPI';
 
 function ProjectsPage() {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | undefined>(undefined);
-  const [currentPage, setCurrentPage] = useState(1);
-
-  const handleMoreClick = () => {
-    setCurrentPage((currentPage) => currentPage + 1);
-  }
-
-  useEffect(() => {
-    async function loadProjects() {
-      setLoading(true);
-      try {
-        const data = await projectAPI.get(currentPage)
-        setError('');
-        if (currentPage === 1) {
-          setProjects(data);
-        } else {
-          setProjects((projects) => [...projects, ...data]);
-        }
-      } catch (e) {
-        if (e instanceof Error) {
-          setError(e.message);
-        }
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadProjects();
-  }, [currentPage]);  
-
-  const onSave = (project: Project) => {
-    projectAPI
-      .put(project)
-      .then((updatedProject) => {
-        let updatedProjects = projects.map((p) =>
-          p.id === updatedProject.id ? new Project(updatedProject) : p
-        );
-        setProjects(updatedProjects);
-      })
-      .catch((e) => {
-        if (e instanceof Error) {
-          setError(e.message);
-        }
-      });
-  }
+  const {
+    data,
+    isLoading,
+    error,
+    isError,
+    isFetching,
+    page,
+    setPage,
+    isPreviousData,
+  } = useProjects();
 
   return (
-    <Fragment>
-
-      {error && (
-        <div className='row'>
-          <div className='card large error'>
-            <section>
-              <p>
-                <span className='icon-alert inverse '></span>
-                {error}
-              </p>
-            </section>
-          </div>
-        </div>    
-      )}
-
+    <>
       <h1>Projects</h1>
-        <ProjectList 
-          projects={projects} 
-          onSave={onSave}
-        />
 
-      {!loading && !error && (
-        <div className='row'>
-          <div className='col-sm-12'>
-            <div className='button-group fluid'>
-              <button 
-                className='button default'
-                onClick={handleMoreClick}
-              >
-                More...
-              </button>
+      {data ? (
+        <>
+          {isFetching && !isLoading && (
+            <span className="toast">Refreshing...</span>
+          )}
+          <ProjectList projects={data} />
+          <div className="row">
+            <div className="col-sm-4">Current page: {page + 1}</div>
+            <div className="col-sm-4">
+              <div className="button-group right">
+                <button
+                  className="button "
+                  onClick={() => setPage((oldPage) => oldPage - 1)}
+                  disabled={page === 0}
+                >
+                  Previous
+                </button>
+                <button
+                  className="button"
+                  onClick={() => {
+                    if (!isPreviousData) {
+                      setPage((oldPage) => oldPage + 1);
+                    }
+                  }}
+                  disabled={data.length != 10}
+                >
+                  Next
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-
-      {loading && (
+        </>
+      ) : isLoading ? (
         <div className="center-page">
           <span className="spinner primary"></span>
           <p>Loading...</p>
         </div>
-      )}
-    </Fragment>
+      ) : isError && error instanceof Error ? (
+        <div className="row">
+          <div className="card large error">
+            <section>
+              <p>
+                <span className="icon-alert inverse "></span>
+                {error.message}
+              </p>
+            </section>
+          </div>
+        </div>
+      ) : null}
+    </>
   );
-};
+}
 
 export default ProjectsPage;
