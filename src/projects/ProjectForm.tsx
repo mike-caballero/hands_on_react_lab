@@ -66,6 +66,8 @@ function ProjectForm({ project: initialProject, onCancel }: ProjectFormProps) {
 
   return (
     <form 
+      aria-label="Edit a Project"
+      name="projectForm"
       className="input-group vertical"
       onSubmit={handleSubmit}
     >
